@@ -51,7 +51,7 @@ func (mr *MongodbRepo) AddMultipleUsers(ctx context.Context, usersTobeInserted .
 	return nil
 }
 
-func (mr *MongodbRepo) FindSingleUser(ctx context.Context, id int) (models.User, error) {
+func (mr *MongodbRepo) FindSingleUser(ctx context.Context, id string) (models.User, error) {
 	usersCollection := mr.MongodbClient.Database(database).Collection(collection)
 
 	filter := bson.D{{Key: "id", Value: id}}
@@ -79,7 +79,7 @@ func (mr *MongodbRepo) FindMultipleUsers(ctx context.Context, limit int64) ([]*m
 		return results, err
 	}
 
-	// Iterate through the cursor
+
 	for cur.Next(ctx) {
 		var elem models.User
 		err := cur.Decode(&elem)
@@ -100,8 +100,25 @@ func (mr *MongodbRepo) FindMultipleUsers(ctx context.Context, limit int64) ([]*m
 	return results, nil
 }
 
-// delete only single document
-func (mr *MongodbRepo) DeleteSingleUser(ctx context.Context, id int) error {
+func (mr *MongodbRepo) UpdateUser(ctx context.Context, id string, u models.User) (models.User, error) {
+	usersCollection := mr.MongodbClient.Database(database).Collection(collection)
+	filter := bson.D{{Key: "id", Value: id}}
+
+	var result models.User
+
+	err := usersCollection.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		return result, err
+	}
+
+	usersCollection.FindOneAndReplace(ctx, filter, u)
+	fmt.Printf(" --------------- Updated a single document: %+v\n", u)
+	return u, nil
+
+}
+
+
+func (mr *MongodbRepo) DeleteUser(ctx context.Context, id string) error {
 	usersCollection := mr.MongodbClient.Database(database).Collection(collection)
 
 	deleteResult, err := usersCollection.DeleteMany(ctx, bson.D{{Key: "id", Value: id}})
@@ -112,7 +129,7 @@ func (mr *MongodbRepo) DeleteSingleUser(ctx context.Context, id int) error {
 	return nil
 }
 
-// / delete all documents
+
 func (mr *MongodbRepo) DeleteAllUsers(ctx context.Context) error {
 	usersCollection := mr.MongodbClient.Database(database).Collection(collection)
 	deleteResult, err := usersCollection.DeleteMany(ctx, bson.D{{}})
